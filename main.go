@@ -14,26 +14,25 @@ import (
 var (
     runningApp *exec.Cmd
     appName    string
-    // 由于 fsnotify 的文件产生的事件与期望的不一样, 所以只能使用 time 来确定
-    modifyUnixTimes = make(map[string]int64)
 )
 
+type Args struct {
+    Path      string
+    SubArgs      string
+}
+
 func main() {
-    args := flag.Args()
+    args := Args{}
+    flag.StringVar(&args.SubArgs, "c", "", "Set here if your code needs arguments.")
+    flag.Parse()
 
-    if len(args) == 1 {
-        appName = args[0]
-    } else if len(args) > 1 {
-        log.Fatalln("只允许一个参数")
-    } else {
-        abs, err := filepath.Abs("./")
-        if err != nil {
-            log.Fatalln(err)
-        }
-        appName = filepath.Base(abs)
+    args.Path, err := filepath.Abs("./")
+    if err != nil {
+        log.Fatalln(err)
     }
+    appName = filepath.Base(args.Path)
 
-    paths, err := Walk("./")
+    paths, err = Walk(args.Path)
     if err != nil {
         log.Fatalln(err)
     }
@@ -66,23 +65,19 @@ func Watch(paths []string) {
     done := make(chan bool)
 
     go func() {
+        var prevActionSecond int
         for {
             select {
             case ev := <-watcher.Event:
                 if filepath.Ext(ev.Name) == ".go" {
-                    reBuild := false
-                    t, ok := modifyUnixTimes[ev.Name]
-                    if !ok {
-                        modifyUnixTimes[ev.Name] = time.Now().Unix()
-                        reBuild = true
-                    } else {
-                        nt := time.Now().Unix()
-                        reBuild = (nt - t) > 2
-                        modifyUnixTimes[ev.Name] = nt
+                    // Prevent the same action output many times.
+                    if prevActionSecond-time.Now().Second() == 0 {
+                        continue
                     }
-                    if reBuild {
-                        Rebuild()
-                    }
+                    // Must be put after ignoring file extension checking, because arise bug if first .fff.swp second fff
+                    prevActionSecond = time.Now().Second()
+                    log.Println("Rebuild")
+                    Rebuild()
                 }
             case err := <-watcher.Error:
                 log.Println("error:", err)
@@ -105,15 +100,17 @@ func Watch(paths []string) {
 func Build() (err error) {
     begin := time.Now().UnixNano()
     cmd := exec.Command("go", "build")
-    // 将执行的错误和输出都显示到当前的 标准输出, 标准错误 设备中
+
+    // Let standard output and error to show on the screen
     cmd.Stdout = os.Stdout
     cmd.Stderr = os.Stderr
-    err = cmd.Run() // Wait for build
+
+    // Wait for build
+    err = cmd.Run()
     log.Println("Build passed:", (time.Now().UnixNano()-begin)/1000/1000, "ms")
     return
 }
 
-// Golang 的应用使用 build, 然后再 run 避免直接使用 run 会出现文件缺少引入的问题
 func Rebuild() {
     err := Build()
     if err != nil {
