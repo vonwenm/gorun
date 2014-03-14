@@ -9,34 +9,32 @@ import (
     "path/filepath"
     "strings"
     "time"
+    "fmt"
 )
 
 var (
     runningApp *exec.Cmd
-    appName    string
+    defaultPath, _ = filepath.Abs("./")
+    appName = filepath.Base(defaultPath)
+    subArgs string
 )
 
-type Args struct {
-    Path      string
-    SubArgs      string
+type args struct {
+    Path string
 }
 
 func main() {
-    args := Args{}
-    flag.StringVar(&args.SubArgs, "c", "", "Set here if your code needs arguments.")
+    // Arguments
+    flag.StringVar(&subArgs, "c", "", "Set here if your code needs arguments.")
     flag.Parse()
 
-    args.Path, err := filepath.Abs("./")
-    if err != nil {
-        log.Fatalln(err)
-    }
-    appName = filepath.Base(args.Path)
-
-    paths, err = Walk(args.Path)
+    // Get subfolder path
+    paths, err := Walk(defaultPath)
     if err != nil {
         log.Fatalln(err)
     }
 
+    // Watch and run
     Build()
     go Start()
     Watch(paths)
@@ -71,12 +69,12 @@ func Watch(paths []string) {
             case ev := <-watcher.Event:
                 if filepath.Ext(ev.Name) == ".go" {
                     // Prevent the same action output many times.
-                    if prevActionSecond-time.Now().Second() == 0 {
+                    if prevActionSecond-time.Now().Second() >= -1 {
                         continue
                     }
                     // Must be put after ignoring file extension checking, because arise bug if first .fff.swp second fff
                     prevActionSecond = time.Now().Second()
-                    log.Println("Rebuild")
+                    //log.Println("Rebuild")
                     Rebuild()
                 }
             case err := <-watcher.Error:
@@ -92,7 +90,7 @@ func Watch(paths []string) {
         }
     }
 
-    log.Println("Begin to watch app:", appName)
+    //log.Println("Begin to watch app:", appName)
     <-done
     watcher.Close()
 }
@@ -122,16 +120,18 @@ func Rebuild() {
 
 func ReStart() {
     if runningApp != nil {
-        log.Println("Kill old running app:", appName)
+        //log.Println("Kill old running app:", appName)
         runningApp.Process.Kill()
     }
     Start()
 }
 
 func Start() {
-    runningApp = exec.Command("./" + appName)
+    cmd := fmt.Sprintf("./%s", appName)
+    fmt.Println(cmd)
+    runningApp = exec.Command(cmd)
     runningApp.Stdout = os.Stdout
     runningApp.Stderr = os.Stderr
-    log.Println("Start running app:", appName)
+    //log.Println("Start running app:", appName)
     go runningApp.Run()
 }
