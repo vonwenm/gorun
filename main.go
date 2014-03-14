@@ -1,7 +1,6 @@
 package main
 
 import (
-    "flag"
     "github.com/howeyc/fsnotify"
     "log"
     "os"
@@ -9,25 +8,16 @@ import (
     "path/filepath"
     "strings"
     "time"
-    "fmt"
 )
 
 var (
-    runningApp *exec.Cmd
+    runningApp     *exec.Cmd
     defaultPath, _ = filepath.Abs("./")
-    appName = filepath.Base(defaultPath)
-    subArgs string
+    appName        = filepath.Base(defaultPath)
+    appArgs        = strings.Join(os.Args[1:], " ")
 )
 
-type args struct {
-    Path string
-}
-
 func main() {
-    // Arguments
-    flag.StringVar(&subArgs, "c", "", "Set here if your code needs arguments.")
-    flag.Parse()
-
     // Get subfolder path
     paths, err := Walk(defaultPath)
     if err != nil {
@@ -127,9 +117,8 @@ func ReStart() {
 }
 
 func Start() {
-    cmd := fmt.Sprintf("./%s", appName)
-    fmt.Println(cmd)
-    runningApp = exec.Command(cmd)
+    log.Println("./" + appName + appArgs)
+    runningApp = exec.Command("./"+appName, appArgs)
     runningApp.Stdout = os.Stdout
     runningApp.Stderr = os.Stderr
     //log.Println("Start running app:", appName)
