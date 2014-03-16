@@ -117,7 +117,7 @@ func ReStart() {
 }
 
 func Start() {
-    log.Println("./" + appName + appArgs)
+    //log.Println("./" + appName + appArgs)
     runningApp = exec.Command("./"+appName, appArgs)
     runningApp.Stdout = os.Stdout
     runningApp.Stderr = os.Stderr
