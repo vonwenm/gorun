@@ -93,7 +93,7 @@ func Build() (err error) {
     cmd.Stdout = os.Stdout
     cmd.Stderr = os.Stderr
 
-    // Wait for build
+    // Wait for building
     if err = cmd.Run(); err != nil {
         log.Println("cmd.Run error : " + err.Error())
     }
@@ -115,7 +115,7 @@ func ReStart() {
         //log.Println("Kill old running app:", appName)
         runningApp.Process.Kill()
     }
-    Start()
+    go Start()
 }
 
 func Start() {
@@ -124,5 +124,7 @@ func Start() {
     runningApp.Stdout = os.Stdout
     runningApp.Stderr = os.Stderr
     //log.Println("Start running app:", appName)
-    go runningApp.Run()
+    if err := runningApp.Run(); err != nil {
+        log.Println("runningApp.Run error : " + err.Error())
+    }
 }
