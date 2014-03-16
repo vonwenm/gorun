@@ -94,7 +94,9 @@ func Build() (err error) {
     cmd.Stderr = os.Stderr
 
     // Wait for build
-    err = cmd.Run()
+    if err = cmd.Run(); err != nil {
+        log.Println("cmd.Run error : " + err.Error())
+    }
     log.Println("Build passed:", (time.Now().UnixNano()-begin)/1000/1000, "ms")
     return
 }
@@ -102,7 +104,7 @@ func Build() (err error) {
 func Rebuild() {
     err := Build()
     if err != nil {
-        log.Println(err)
+        log.Println("Rebuild fail : " + err.Error())
     } else {
         ReStart()
     }
