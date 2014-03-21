@@ -14,7 +14,6 @@ var (
     runningApp     *exec.Cmd
     defaultPath, _ = filepath.Abs("./")
     appName        = filepath.Base(defaultPath)
-    appArgs        = strings.Join(os.Args[1:], " ")
 )
 
 func main() {
@@ -53,14 +52,14 @@ func Watch(paths []string) {
     done := make(chan bool)
 
     go func() {
-        var prevActionSecond, subtraction int
+        var prevActionSecond, duration int
         for {
             select {
             case ev := <-watcher.Event:
                 if filepath.Ext(ev.Name) == ".go" {
                     // Prevent the same action output many times.
-                    subtraction = prevActionSecond-time.Now().Second()
-                    if subtraction < 0 && subtraction >= -1 {
+                    duration = prevActionSecond-time.Now().Second()
+                    if duration < 0 && duration >= -1 {
                         //log.Println(ev.Name + "    continue")
                         continue
                     }
@@ -120,8 +119,7 @@ func ReStart() {
 }
 
 func Start() {
-    //log.Println("./" + appName + appArgs)
-    runningApp = exec.Command("./"+appName, appArgs)
+    runningApp = exec.Command("./"+appName, os.Args[1:]...)
     runningApp.Stdout = os.Stdout
     runningApp.Stderr = os.Stderr
     //log.Println("Start running app:", appName)
