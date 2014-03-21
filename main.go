@@ -53,16 +53,17 @@ func Watch(paths []string) {
     done := make(chan bool)
 
     go func() {
-        var prevActionSecond int
+        var prevActionSecond, subtraction int
         for {
             select {
             case ev := <-watcher.Event:
                 if filepath.Ext(ev.Name) == ".go" {
                     // Prevent the same action output many times.
-                    if prevActionSecond-time.Now().Second() >= -1 {
+                    subtraction = prevActionSecond-time.Now().Second()
+                    if subtraction < 0 && subtraction >= -1 {
+                        //log.Println(ev.Name + "    continue")
                         continue
                     }
-                    // Must be put after ignoring file extension checking, because arise bug if first .fff.swp second fff
                     prevActionSecond = time.Now().Second()
                     //log.Println("Rebuild")
                     Rebuild()
